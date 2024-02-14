@@ -19,6 +19,14 @@
     "noUnusedParameters": true,
     "noImplicitReturns": false,
     "skipLibCheck": true,
-    "baseUrl": "./packages"
-  }
+    "paths": {
+      "@xuans-mini-react/*": [
+        "./packages/*/src"
+      ]
+    }
+  },
+  "include": [
+    "packages/*/src",
+    "packages/*/__tests__"
+  ]
 }
