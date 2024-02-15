@@ -22,6 +22,9 @@
     "paths": {
       "@xuans-mini-react/*": [
         "./packages/*/src"
+      ],
+      "hostConfig": [
+        "./packages/react-reconciler/src/hostConfig.ts"
       ]
     }
   },

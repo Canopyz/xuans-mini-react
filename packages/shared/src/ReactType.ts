@@ -10,3 +10,5 @@ export interface ReactElementType {
   props: Props
   ref: Ref
 }
+
+export type Action<State> = State | ((state: State) => State)
