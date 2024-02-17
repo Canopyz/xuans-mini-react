@@ -1,5 +1,11 @@
-import { Key, Props, Ref, Type } from '@xuans-mini-react/shared'
-import { WorkTag } from './workTags'
+import {
+  Key,
+  Props,
+  ReactElementType,
+  Ref,
+  Type,
+} from '@xuans-mini-react/shared'
+import { FunctionComponent, HostComponent, WorkTag } from './workTags'
 import { Flags, NoFlags } from './fiberFlags'
 import { Container } from 'hostConfig'
 import { UpdateQueue } from './updateQueue'
@@ -21,6 +27,7 @@ export class FiberNode {
   memoizedState: any
   alternate: FiberNode | null
   flags: Flags
+  subtreeFlags: Flags
   updateQueue: UpdateQueue<any> | null
 
   constructor(tag: WorkTag, pendingProps: Props, key: Key) {
@@ -51,6 +58,7 @@ export class FiberNode {
     this.alternate = null
     // side effect flags
     this.flags = NoFlags
+    this.subtreeFlags = NoFlags
   }
 }
 
@@ -82,6 +90,7 @@ export function createWorkInProgress(
   } else {
     workInProgress.pendingProps = pendingProps
     workInProgress.flags = NoFlags
+    workInProgress.subtreeFlags = NoFlags
   }
   workInProgress.type = current.type
   workInProgress.updateQueue = current.updateQueue
@@ -90,4 +99,21 @@ export function createWorkInProgress(
   workInProgress.memoizedState = current.memoizedState
 
   return workInProgress
+}
+
+export function createFiberFromElement(element: ReactElementType) {
+  const { type, key, props } = element
+
+  let fiberTag: WorkTag = FunctionComponent
+  if (typeof type === 'string') {
+    fiberTag = HostComponent
+  } else if (typeof type !== 'function') {
+    if (__DEV__) {
+      console.warn('Unknown fiber tag', type)
+    }
+  }
+
+  const fiber = new FiberNode(fiberTag, props, key)
+  fiber.type = type
+  return fiber
 }
