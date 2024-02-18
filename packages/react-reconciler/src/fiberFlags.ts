@@ -1,6 +1,8 @@
 export type Flags = number
 
-export const NoFlags = 1
-export const Placement = NoFlags << 1
-export const Update = NoFlags << 2
-export const ChildDeleted = NoFlags << 3
+export const NoFlags = 0
+export const Placement = 1
+export const Update = 1 << 1
+export const ChildDeleted = 1 << 2
+
+export const MutationMask = Placement | Update | ChildDeleted

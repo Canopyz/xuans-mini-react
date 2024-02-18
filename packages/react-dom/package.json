@@ -1,0 +1,19 @@
+{
+  "name": "@xuans-mini-react/react-dom",
+  "version": "1.0.0",
+  "description": "",
+  "module": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@xuans-mini-react/react-reconciler": "workspace:^",
+    "@xuans-mini-react/shared": "workspace:^"
+  },
+  "peerDependencies": {
+    "@xuans-mini-react/react": "workspace:^"
+  }
+}

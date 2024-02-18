@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "eslint --ext .js,.ts,.jsx,.tsx --fix --quiet ./packages",
     "prepare": "husky",
-    "build:dev": "rimraf dist && rollup --config scripts/rollup/react.config.js --bundleConfigAsCjs"
+    "build:dev": "rimraf dist && rollup --config scripts/rollup/dev.config.js --bundleConfigAsCjs"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +14,7 @@
   "devDependencies": {
     "@commitlint/cli": "^18.6.1",
     "@commitlint/config-conventional": "^18.6.2",
+    "@rollup/plugin-alias": "^5.1.0",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-replace": "^5.0.5",
     "@typescript-eslint/eslint-plugin": "^7.0.1",

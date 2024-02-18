@@ -24,7 +24,7 @@
         "./packages/*/src"
       ],
       "hostConfig": [
-        "./packages/react-reconciler/src/hostConfig.ts"
+        "./packages/react-dom/src/hostConfig.ts"
       ]
     }
   },

@@ -9,6 +9,7 @@ function ChildReconciler(shouldTrackSideEffects: boolean) {
     currentFiber: FiberNode | null,
     element: ReactElementType,
   ) {
+    console.log(currentFiber)
     const fiber = createFiberFromElement(element)
     fiber.return = returnFiber
     return fiber
@@ -19,6 +20,7 @@ function ChildReconciler(shouldTrackSideEffects: boolean) {
     currentFiber: FiberNode | null,
     content: string | number,
   ) {
+    console.log(currentFiber)
     const fiber = new FiberNode(HostText, { content }, null)
     fiber.return = returnFiber
     return fiber
