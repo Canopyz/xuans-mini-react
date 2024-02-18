@@ -5,5 +5,8 @@
   "module": "src/index.ts",
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@xuans-mini-react/react": "workspace:^"
+  }
 }

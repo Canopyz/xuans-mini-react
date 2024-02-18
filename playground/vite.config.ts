@@ -18,19 +18,15 @@ export default defineConfig({
         if (id.includes('react/jsx-dev-runtime')) {
           return resolvePkgPath('react/src/jsx.ts')
         }
+
+        if (id.includes('react/jsx-runtime')) {
+          return resolvePkgPath('react/src/jsx.ts')
+        }
       }
     }
   ],
   resolve: {
     alias: [
-      {
-        find: 'react',
-        replacement: resolvePkgPath('react'),
-      },
-      {
-        find: 'react-dom/client',
-        replacement: resolvePkgPath('react-dom'),
-      },
       {
         find: 'hostConfig',
         replacement: path.resolve(

@@ -1,8 +1,11 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
+import React, { useState } from '../../packages/react/src'
+import ReactDOM from '../../packages/react-dom/src'
 
 const App = () => {
-  return <div>mini react</div>
+  const [num, setNum] = useState(100)
+  window.setNum = setNum
+
+  return <div>{num}</div>
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root')!)
