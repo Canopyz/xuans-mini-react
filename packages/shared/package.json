@@ -2,6 +2,7 @@
   "name": "@xuans-mini-react/shared",
   "version": "1.0.0",
   "description": "",
+  "module": "src/index.ts",
   "keywords": [],
   "author": "",
   "license": "ISC"

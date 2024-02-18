@@ -3,7 +3,7 @@ import {
   Props,
   ReactElementType,
   Ref,
-  Type,
+  ElementType,
 } from '@xuans-mini-react/shared'
 import { FunctionComponent, HostComponent, WorkTag } from './workTags'
 import { Flags, NoFlags } from './fiberFlags'
@@ -11,7 +11,7 @@ import { Container } from 'hostConfig'
 import { UpdateQueue } from './updateQueue'
 
 export class FiberNode {
-  type: Type | null
+  type: ElementType | null
   tag: WorkTag
   pendingProps: Props
   key: Key

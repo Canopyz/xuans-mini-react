@@ -6,7 +6,8 @@
   "scripts": {
     "lint": "eslint --ext .js,.ts,.jsx,.tsx --fix --quiet ./packages",
     "prepare": "husky",
-    "build:dev": "rimraf dist && rollup --config scripts/rollup/dev.config.js --bundleConfigAsCjs"
+    "build:dev": "rimraf dist && rollup --config scripts/rollup/dev.config.js --bundleConfigAsCjs",
+    "play": "vite playground --force"
   },
   "keywords": [],
   "author": "",
@@ -28,6 +29,7 @@
     "rollup": "^4.10.0",
     "rollup-plugin-generate-package-json": "^3.2.0",
     "rollup-plugin-typescript2": "^0.36.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vite": "^5.1.0"
   }
 }
