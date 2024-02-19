@@ -9,10 +9,10 @@ const pkgDistPath = resolvePkgPath(folderName, true)
 export default [
   // react
   {
-    input: `${pkgPath}/src/${module || 'index.ts'}`,
+    input: `${pkgPath}/${module || 'index.ts'}`,
     output: {
       file: `${pkgDistPath}/index.js`,
-      name: 'xuans-mini-react',
+      name: '@xuans-mini-react/react',
       format: 'umd',
     },
     plugins: [

@@ -10,7 +10,7 @@ const pkgDistPath = resolvePkgPath(folderName, true)
 export default [
   // react-dom
   {
-    input: `${pkgPath}/src/${module || 'index.ts'}`,
+    input: `${pkgPath}/${module || 'index.ts'}`,
     output: [
       {
         file: `${pkgDistPath}/index.js`,
@@ -39,11 +39,24 @@ export default [
           description,
           version,
           peerDependencies: {
-            'xuans-mini-react': version,
+            '@xuans-mini-react/react': version,
           },
           main: 'index.js',
         }),
       }),
     ],
+  },
+  // test-utils
+  {
+    input: `${pkgPath}/src/test-utils.ts`,
+    output: [
+      {
+        file: `${pkgDistPath}/test-utils.js`,
+        name: '@xuans-mini-react/test-utils',
+        format: 'umd',
+      },
+    ],
+    external: ['@xuans-mini-react/react-dom', '@xuans-mini-react/react'],
+    plugins: [...getBaseRollupPlugins()],
   },
 ]

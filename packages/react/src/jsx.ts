@@ -24,6 +24,14 @@ const ReactElement = function (
   return element
 }
 
+export function isValidElement(object: any): boolean {
+  return (
+    typeof object === 'object' &&
+    object !== null &&
+    object.$$typeof === REACT_ELEMENT_TYPE
+  )
+}
+
 export const jsx = function (
   type: ElementType,
   config: {
@@ -35,14 +43,16 @@ export const jsx = function (
   let ref: Ref = null
   const props: Props = {}
 
-  console.log({ type, config, maybeChildren })
-
   for (const prop in config) {
     if (prop === 'key') {
-      key = config.key
+      if (config.key === undefined) {
+        key = null
+      } else {
+        key = '' + config.key
+      }
       delete config.key
     } else if (prop === 'ref') {
-      ref = config.ref
+      ref = config.ref ?? null
       delete config.ref
     } else if (Object.hasOwn(config, prop)) {
       props[prop] = config[prop]
