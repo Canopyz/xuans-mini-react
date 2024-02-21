@@ -1,11 +1,12 @@
+import { DOMElement, updateFiberProps } from './SyntheticEvents'
+
 export type Container = Element
 export type Instance = Element
 export type TextInstance = Text
 
 export const createInstance = (type: string, props: any): Instance => {
-  const element = document.createElement(type)
-  // TODO: props
-  console.log(props)
+  const element = document.createElement(type) as unknown as DOMElement
+  updateFiberProps(element, props)
   return element
 }
 
