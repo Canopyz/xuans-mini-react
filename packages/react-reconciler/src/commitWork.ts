@@ -1,7 +1,9 @@
 import {
   Container,
+  Instance,
   appendChildToContainer,
   commitTextUpdate,
+  insertChildToContainer,
   removeChild,
 } from 'hostConfig'
 import { FiberNode, FiberRootNode } from './fiber'
@@ -157,8 +159,47 @@ function commitPlacement(finishedWork: FiberNode) {
   }
 
   const hostParent = getHostParent(finishedWork)
+  const sibling = getHostSibling(finishedWork)
+
   if (hostParent) {
-    appendPlacementNodeIntoContainer(finishedWork, hostParent)
+    insertOrAppendPlacementNodeIntoContainer(finishedWork, hostParent, sibling)
+  }
+}
+
+function getHostSibling(fiber: FiberNode) {
+  let node: FiberNode = fiber
+
+  findSibling: while (true) {
+    while (node.sibling === null) {
+      const parent = node.return
+
+      if (
+        parent === null ||
+        parent.tag === HostComponent ||
+        parent.tag === HostRoot
+      ) {
+        return null
+      }
+      node = parent
+    }
+
+    node.sibling.return = node.return
+    node = node.sibling
+
+    while (node.tag !== HostComponent && node.tag !== HostText) {
+      if ((node.flags & MutationMask) !== NoFlags) {
+        continue findSibling
+      }
+      if (node.child === null) {
+        continue findSibling
+      }
+      node.child.return = node
+      node = node.child
+    }
+
+    if ((node.flags & MutationMask) === NoFlags) {
+      return node.stateNode
+    }
   }
 }
 
@@ -183,21 +224,26 @@ function getHostParent(fiber: FiberNode): Container | null {
   return null
 }
 
-function appendPlacementNodeIntoContainer(
+function insertOrAppendPlacementNodeIntoContainer(
   finishedWork: FiberNode,
   hostParent: Container,
+  before?: Instance | null,
 ) {
   if (finishedWork.tag === HostComponent || finishedWork.tag === HostText) {
-    return appendChildToContainer(hostParent, finishedWork.stateNode)
+    if (before) {
+      return insertChildToContainer(finishedWork.stateNode, hostParent, before)
+    } else {
+      return appendChildToContainer(hostParent, finishedWork.stateNode)
+    }
   }
 
   const child = finishedWork.child
   if (child) {
-    appendPlacementNodeIntoContainer(child, hostParent)
+    insertOrAppendPlacementNodeIntoContainer(child, hostParent)
 
     let sibling = child.sibling
     while (sibling) {
-      appendPlacementNodeIntoContainer(sibling, hostParent)
+      insertOrAppendPlacementNodeIntoContainer(sibling, hostParent)
       sibling = sibling.sibling
     }
   }
