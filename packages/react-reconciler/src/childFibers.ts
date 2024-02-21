@@ -1,15 +1,57 @@
-import { REACT_ELEMENT_TYPE, ReactElementType } from '@xuans-mini-react/shared'
-import { FiberNode, createFiberFromElement } from './fiber'
+import {
+  Props,
+  REACT_ELEMENT_TYPE,
+  ReactElementType,
+} from '@xuans-mini-react/shared'
+import {
+  FiberNode,
+  createFiberFromElement,
+  createWorkInProgress,
+} from './fiber'
 import { HostText } from './workTags'
-import { Placement } from './fiberFlags'
+import { ChildDeletion, Placement } from './fiberFlags'
 
 function ChildReconciler(shouldTrackSideEffects: boolean) {
+  function deleteChild(returnFiber: FiberNode, childToDelete: FiberNode) {
+    if (!shouldTrackSideEffects) {
+      return
+    }
+
+    const deletions = returnFiber.deletions
+    if (deletions === null) {
+      returnFiber.deletions = [childToDelete]
+      returnFiber.flags |= ChildDeletion
+    } else {
+      deletions.push(childToDelete)
+    }
+  }
   function reconcileSingleElement(
     returnFiber: FiberNode,
     currentFiber: FiberNode | null,
     element: ReactElementType,
   ) {
-    console.log(currentFiber)
+    const key = element.key
+    if (currentFiber !== null) {
+      if (currentFiber.key === key) {
+        if (element.$$typeof === REACT_ELEMENT_TYPE) {
+          if (element.type === currentFiber.type) {
+            // can reuse the existing fiber
+            const existing = useFiber(currentFiber, element.props)
+            existing.return = returnFiber
+            return existing
+          }
+          deleteChild(returnFiber, currentFiber)
+        } else {
+          if (__DEV__) {
+            console.warn('Unknown child type', element)
+          }
+        }
+      } else {
+        // delete the old child
+        deleteChild(returnFiber, currentFiber)
+      }
+    }
+
     const fiber = createFiberFromElement(element)
     fiber.return = returnFiber
     return fiber
@@ -20,7 +62,15 @@ function ChildReconciler(shouldTrackSideEffects: boolean) {
     currentFiber: FiberNode | null,
     content: string | number,
   ) {
-    console.log(currentFiber)
+    if (currentFiber !== null) {
+      if (currentFiber.tag === HostText) {
+        const existing = useFiber(currentFiber, { content })
+        existing.return = returnFiber
+        return existing
+      }
+
+      deleteChild(returnFiber, currentFiber)
+    }
     const fiber = new FiberNode(HostText, { content }, null)
     fiber.return = returnFiber
     return fiber
@@ -61,12 +111,21 @@ function ChildReconciler(shouldTrackSideEffects: boolean) {
       )
     }
 
+    currentFiber && deleteChild(returnFiber, currentFiber)
+
     if (__DEV__) {
       console.warn('Unknown child type', newChild)
     }
 
     return null
   }
+}
+
+function useFiber(fiber: FiberNode, pendingProps: Props): FiberNode {
+  const clone = createWorkInProgress(fiber, pendingProps)
+  clone.index = 0
+  clone.sibling = null
+  return clone
 }
 
 export const reconcileChildFibers = ChildReconciler(true)

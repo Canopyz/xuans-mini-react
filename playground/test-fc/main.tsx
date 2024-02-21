@@ -5,7 +5,7 @@ const App = () => {
   const [num, setNum] = useState(100)
   window.setNum = setNum
 
-  return <div>{num}</div>
+  return num === 3 ? <span>{num}</span> : <div>not 3</div>
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root')!)

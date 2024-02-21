@@ -234,10 +234,10 @@ describe('ReactElement', () => {
     const REACT_ELEMENT_TYPE = function() { } // fake Symbol
     const OTHER_SYMBOL = function() { } // another fake Symbol
     /*eslint-enable */
-    global.Symbol = function(/* name */) {
+    global.Symbol = function (/* name */) {
       return OTHER_SYMBOL
     }
-    global.Symbol.for = function(key) {
+    global.Symbol.for = function (key) {
       if (key === 'react.element') {
         return REACT_ELEMENT_TYPE
       }

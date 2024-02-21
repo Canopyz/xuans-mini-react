@@ -7,12 +7,14 @@ import {
   createUpdate,
   createUpdateQueue,
   enqueueUpdate,
+  processUpdateQueue,
 } from './updateQueue'
 import { scheduleUpdateOnFiber } from './workLoop'
 import { Dispatch, Dispatcher } from '@xuans-mini-react/react'
 
 let currentlyRenderingFiber: FiberNode | null = null
 let workInProgressHook: Hook | null = null
+let currentHook: Hook | null = null
 
 const { currentDispatcher } = internals
 
@@ -29,7 +31,7 @@ export function renderWithHooks(wip: FiberNode) {
   const current = wip.alternate
 
   if (current !== null) {
-    currentDispatcher.current = null
+    currentDispatcher.current = HooksDispatcherOnUpdate
   } else {
     currentDispatcher.current = HooksDispatcherOnMount
   }
@@ -40,11 +42,68 @@ export function renderWithHooks(wip: FiberNode) {
   const children = Component(props)
 
   currentlyRenderingFiber = null
+  workInProgressHook = null
+  currentHook = null
   return children
 }
 
 const HooksDispatcherOnMount: Dispatcher = {
   useState: mountState,
+}
+
+const HooksDispatcherOnUpdate: Dispatcher = {
+  useState: updateState,
+}
+
+function updateState<State>(): [State, Dispatch<State>] {
+  const hook = updateWorkInProgressHook()
+
+  const queue = hook.updateQueue
+  const pending = queue.shared.pending
+
+  if (pending !== null) {
+    const { memoizedState } = processUpdateQueue(hook, pending)
+    hook.memoizedState = memoizedState
+  }
+
+  return [hook.memoizedState, queue.dispatch]
+}
+
+function updateWorkInProgressHook() {
+  // TODO: handle update triggerd in render
+  let nextCurrentHook: Hook | null = null
+
+  if (currentHook === null) {
+    const current = currentlyRenderingFiber?.alternate
+    nextCurrentHook = current?.memoizedState
+  } else {
+    nextCurrentHook = currentHook.next
+  }
+
+  if (nextCurrentHook === null) {
+    throw new Error('Rendered more hooks than during the previous render.')
+  }
+
+  currentHook = nextCurrentHook
+  const newHook: Hook = {
+    memoizedState: currentHook.memoizedState,
+    updateQueue: currentHook.updateQueue,
+    next: null,
+  }
+
+  if (workInProgressHook === null) {
+    if (currentlyRenderingFiber === null) {
+      throw new Error(
+        'Hooks can only be called inside the body of a function component.',
+      )
+    } else {
+      workInProgressHook = currentlyRenderingFiber.memoizedState = newHook
+    }
+  } else {
+    workInProgressHook = workInProgressHook.next = newHook
+  }
+
+  return workInProgressHook
 }
 
 function mountState<State>(
