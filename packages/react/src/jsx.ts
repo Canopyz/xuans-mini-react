@@ -5,6 +5,7 @@ import {
   ReactElementType,
   Ref,
   ElementType,
+  REACT_FRAGMENT_TYPE,
 } from '@xuans-mini-react/shared'
 
 const ReactElement = function (
@@ -68,6 +69,8 @@ export const jsx = function (
 
   return ReactElement(type, key, ref, props)
 }
+
+export const Fragment = REACT_FRAGMENT_TYPE
 
 export const jsxDEV = (type: ElementType, config: any) => {
   let key: Key = null

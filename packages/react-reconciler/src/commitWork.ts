@@ -15,6 +15,7 @@ import {
   Update,
 } from './fiberFlags'
 import {
+  Fragment,
   FunctionComponent,
   HostComponent,
   HostRoot,
@@ -76,24 +77,50 @@ function commitMutationEffectsOnFiber(finishedWork: FiberNode) {
   }
 }
 
+function recordHostChildrenToDelete(
+  childrenToDelete: FiberNode[],
+  unmountFiber: FiberNode,
+) {
+  const lastOne = childrenToDelete[childrenToDelete.length - 1]
+
+  if (!lastOne) {
+    childrenToDelete.push(unmountFiber)
+  } else {
+    let node = lastOne.sibling
+    while (node) {
+      if (unmountFiber === node) {
+        childrenToDelete.push(unmountFiber)
+      } else {
+        let parent = unmountFiber.return
+        while (parent?.tag === Fragment) {
+          if (parent === node) {
+            childrenToDelete.push(unmountFiber)
+            return
+          }
+          parent = parent.return
+        }
+      }
+      node = node.sibling
+    }
+  }
+}
+
 function commitDeletion(childToDelete: FiberNode) {
-  let rootHostNode: FiberNode | null = null
+  const rootChildrenToDelete: FiberNode[] = []
 
   commitNestedComponent(childToDelete, (unmountFiber) => {
     switch (unmountFiber.tag) {
       case HostComponent:
-        if (rootHostNode === null) {
-          rootHostNode = unmountFiber
-        }
+        recordHostChildrenToDelete(rootChildrenToDelete, unmountFiber)
         // unbind refs
         return
       case HostText:
-        if (rootHostNode === null) {
-          rootHostNode = unmountFiber
-        }
+        recordHostChildrenToDelete(rootChildrenToDelete, unmountFiber)
         return
       case FunctionComponent:
         // unmount effects
+        return
+      case Fragment:
         return
       default:
         if (__DEV__) {
@@ -102,9 +129,13 @@ function commitDeletion(childToDelete: FiberNode) {
     }
   })
 
-  if (rootHostNode !== null) {
+  if (rootChildrenToDelete.length) {
     const hostParent = getHostParent(childToDelete)
-    hostParent && removeChild((rootHostNode as FiberNode).stateNode, hostParent)
+    if (hostParent) {
+      rootChildrenToDelete.forEach((child) => {
+        removeChild(child.stateNode, hostParent)
+      })
+    }
   }
   childToDelete.return = null
   childToDelete.child = null

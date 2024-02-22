@@ -2,6 +2,7 @@ import { ReactElementType } from '@xuans-mini-react/shared'
 import { FiberNode } from './fiber'
 import { UpdateQueue, processUpdateQueue } from './updateQueue'
 import {
+  Fragment,
   FunctionComponent,
   HostComponent,
   HostRoot,
@@ -21,12 +22,20 @@ export const beginWork = (wip: FiberNode) => {
       return null
     case FunctionComponent:
       return updateFunctionComponent(wip)
+    case Fragment:
+      return updateFragmentComponent(wip)
     default:
       if (__DEV__) {
         console.warn('Unknown fiber tag', wip.tag)
       }
       return null
   }
+}
+
+function updateFragmentComponent(wip: FiberNode) {
+  const nextChildren = wip.pendingProps as ReactElementType
+  reconcileChildren(wip, nextChildren)
+  return wip.child
 }
 
 function updateFunctionComponent(wip: FiberNode) {

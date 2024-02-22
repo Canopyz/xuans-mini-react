@@ -5,7 +5,7 @@ import {
   Ref,
   ElementType,
 } from '@xuans-mini-react/shared'
-import { FunctionComponent, HostComponent, WorkTag } from './workTags'
+import { Fragment, FunctionComponent, HostComponent, WorkTag } from './workTags'
 import { Flags, NoFlags } from './fiberFlags'
 import { Container } from 'hostConfig'
 import { UpdateQueue } from './updateQueue'
@@ -34,7 +34,7 @@ export class FiberNode {
   constructor(tag: WorkTag, pendingProps: Props, key: Key) {
     // tag is the type of the fiber node
     this.tag = tag
-    this.key = key
+    this.key = key || null
     // stateNode is the instance of the component
     this.stateNode = null
     // type is the function component or host component
@@ -118,5 +118,10 @@ export function createFiberFromElement(element: ReactElementType) {
 
   const fiber = new FiberNode(fiberTag, props, key)
   fiber.type = type
+  return fiber
+}
+
+export function createFiberFromFragment(element: ReactElementType, key: Key) {
+  const fiber = new FiberNode(Fragment, element, key)
   return fiber
 }

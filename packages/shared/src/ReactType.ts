@@ -1,4 +1,9 @@
-export type ElementType = string | ((props: any) => any)
+import { REACT_FRAGMENT_TYPE } from './ReactSymbols'
+
+export type ElementType =
+  | string
+  | ((props: any) => any)
+  | typeof REACT_FRAGMENT_TYPE
 export type Props = { [key: string]: any }
 export type Key = string | number | null
 export type Ref = any
