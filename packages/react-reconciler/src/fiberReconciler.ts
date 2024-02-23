@@ -4,6 +4,7 @@ import { FiberNode, FiberRootNode } from './fiber'
 import { createUpdate, createUpdateQueue, enqueueUpdate } from './updateQueue'
 import { ReactElementType } from '@xuans-mini-react/shared'
 import { scheduleUpdateOnFiber } from './workLoop'
+import { requestUpdateLane } from './fiberLanes'
 
 export function createContainer(container: Container) {
   const hostRootFiber = new FiberNode(HostRoot, {}, null)
@@ -17,9 +18,10 @@ export function updateContainer(
   root: FiberRootNode,
 ) {
   const hostRootFiber = root.current
-  const update = createUpdate<ReactElementType | null>(element)
+  const lane = requestUpdateLane()
+  const update = createUpdate<ReactElementType | null>(element, lane)
   enqueueUpdate(hostRootFiber.updateQueue!, update)
-  scheduleUpdateOnFiber(hostRootFiber)
+  scheduleUpdateOnFiber(hostRootFiber, lane)
 
   return element
 }

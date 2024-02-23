@@ -3,6 +3,7 @@ import ReactDOM from '../../packages/react-dom/src'
 
 const App = () => {
   const [num, setNum] = useState(100)
+  console.log(num)
 
   const test =
     num % 2 === 0 ? (
@@ -21,10 +22,12 @@ const App = () => {
   return (
     <ul
       onClick={() => {
-        setNum(num + 1)
+        setNum((num) => num + 1)
+        setNum((num) => num + 1)
+        setNum((num) => num + 1)
       }}
     >
-      {test}
+      {num}
     </ul>
   )
 }
