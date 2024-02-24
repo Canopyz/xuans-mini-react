@@ -12,6 +12,8 @@ import {
 import { scheduleUpdateOnFiber } from './workLoop'
 import { Dispatch, Dispatcher } from '@xuans-mini-react/react'
 import { Lane, NoLane, requestUpdateLane } from './fiberLanes'
+import { HookEffectTag, HookHasEffect, Passive } from './hookEffectTags'
+import { PassiveEffect } from './fiberFlags'
 
 let currentlyRenderingFiber: FiberNode | null = null
 let workInProgressHook: Hook | null = null
@@ -26,9 +28,25 @@ interface Hook {
   next: Hook | null
 }
 
+export interface Effect {
+  tag: HookEffectTag
+  create: () => EffectCallback | void
+  destroy: EffectCallback | void
+  deps: EffectDeps
+  next: Effect | null
+}
+
+export interface FCUpdateQueue<State> extends UpdateQueue<State> {
+  lastEffect: Effect | null
+}
+
+type EffectCallback = () => void
+type EffectDeps = any[] | null
+
 export function renderWithHooks(wip: FiberNode, lane: Lane) {
   currentlyRenderingFiber = wip
   wip.memoizedState = null
+  wip.updateQueue = null
   renderLane = lane
 
   const current = wip.alternate
@@ -53,10 +71,112 @@ export function renderWithHooks(wip: FiberNode, lane: Lane) {
 
 const HooksDispatcherOnMount: Dispatcher = {
   useState: mountState,
+  useEffect: mountEffect,
 }
 
 const HooksDispatcherOnUpdate: Dispatcher = {
   useState: updateState,
+  useEffect: updateEffect,
+}
+
+function mountEffect(create: () => EffectCallback | void, deps?: EffectDeps) {
+  const hook = mountWorkInProgressHook()
+  const nextDeps = deps === undefined ? null : deps
+  currentlyRenderingFiber!.flags |= PassiveEffect
+
+  hook.memoizedState = pushEffect(
+    Passive | HookHasEffect,
+    create,
+    undefined,
+    nextDeps,
+  )
+}
+
+function updateEffect(create: () => EffectCallback | void, deps?: EffectDeps) {
+  const hook = updateWorkInProgressHook()
+  const nextDeps = deps === undefined ? null : deps
+  let destroy: EffectCallback | void
+
+  if (currentHook !== null) {
+    const prevEffect = currentHook.memoizedState as Effect
+    destroy = prevEffect.destroy
+
+    if (nextDeps !== null) {
+      const prevDeps = prevEffect.deps
+      if (areHookInputsEqual(nextDeps, prevDeps)) {
+        hook.memoizedState = pushEffect(Passive, create, destroy, nextDeps)
+        return
+      }
+    }
+
+    currentlyRenderingFiber!.flags |= PassiveEffect
+    hook.memoizedState = pushEffect(
+      Passive | HookHasEffect,
+      create,
+      destroy,
+      nextDeps,
+    )
+  }
+}
+
+function areHookInputsEqual(nextDeps: EffectDeps, prevDeps: EffectDeps) {
+  if (prevDeps === null || nextDeps === null) {
+    return false
+  }
+
+  if (nextDeps.length !== prevDeps.length) {
+    return false
+  }
+
+  for (let i = 0; i < prevDeps.length; i++) {
+    if (nextDeps[i] !== prevDeps[i]) {
+      return false
+    }
+  }
+  return true
+}
+
+function pushEffect(
+  hookFlags: HookEffectTag,
+  create: () => EffectCallback | void,
+  destroy: EffectCallback | void,
+  deps: EffectDeps,
+) {
+  const effect: Effect = {
+    tag: hookFlags,
+    create,
+    destroy,
+    deps,
+    next: null,
+  }
+  const fiber = currentlyRenderingFiber
+  if (fiber === null) {
+    throw new Error('Unexpected render phase')
+  }
+  const updateQueue = fiber.updateQueue as FCUpdateQueue<any>
+  if (updateQueue === null) {
+    const updateQueue = createFCUpdateQueue()
+    fiber.updateQueue = updateQueue
+    effect.next = effect
+    updateQueue.lastEffect = effect
+  } else {
+    const lastEffect = updateQueue.lastEffect
+    if (lastEffect === null) {
+      effect.next = effect
+      updateQueue.lastEffect = effect
+    } else {
+      effect.next = lastEffect.next
+      lastEffect.next = effect
+      updateQueue.lastEffect = effect
+    }
+  }
+  return effect
+}
+
+function createFCUpdateQueue<State>() {
+  const updateQueue = createUpdateQueue<State>() as FCUpdateQueue<State>
+  updateQueue.lastEffect = null
+  return updateQueue
 }
 
 function updateState<State>(): [State, Dispatch<State>] {
