@@ -1,5 +1,6 @@
 import {
   Container,
+  Instance,
   appendInitialChild,
   createInstance,
   createTextInstance,
@@ -13,7 +14,6 @@ import {
   HostText,
 } from './workTags'
 import { NoFlags, Update } from './fiberFlags'
-import { updateFiberProps } from '../../react-dom/src/SyntheticEvents'
 
 function markUpdate(fiber: FiberNode) {
   fiber.flags |= Update
@@ -28,7 +28,7 @@ export const completeWork = (wip: FiberNode) => {
       if (current !== null && wip.stateNode) {
         // update
         // temmporary solution, need to compare newProps and oldProps, mark update if different
-        updateFiberProps(wip.stateNode, newProps)
+        markUpdate(wip)
       } else {
         // create DOM and append to parent
         const instance = createInstance(wip.type as string, newProps)
@@ -69,7 +69,7 @@ export const completeWork = (wip: FiberNode) => {
   }
 }
 
-function appendAllChildren(parent: Container, wip: FiberNode) {
+function appendAllChildren(parent: Container | Instance, wip: FiberNode) {
   let node = wip.child
 
   while (node !== null) {

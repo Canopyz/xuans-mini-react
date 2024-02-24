@@ -1,3 +1,4 @@
+import { Props } from '@xuans-mini-react/shared'
 import { DOMElement, updateFiberProps } from './SyntheticEvents'
 
 export type Container = Element
@@ -37,6 +38,10 @@ export function insertChildToContainer(
   before: Instance,
 ) {
   container.insertBefore(child, before)
+}
+
+export function commitPropsUpdate(instance: Instance, props: Props | null) {
+  updateFiberProps(instance as DOMElement, props)
 }
 
 export const scheduleMicrotask =

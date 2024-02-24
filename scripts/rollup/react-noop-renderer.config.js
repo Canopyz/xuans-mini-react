@@ -2,30 +2,37 @@ import generatePackageJson from 'rollup-plugin-generate-package-json'
 import { getBaseRollupPlugins, getPackageJSON, resolvePkgPath } from './utils'
 import alias from '@rollup/plugin-alias'
 
-const { name, module, peerDependencies } = getPackageJSON('react-dom')
+const { name, module, peerDependencies } = getPackageJSON('react-noop-renderer')
 const folderName = name.slice(name.indexOf('/') + 1)
 const pkgPath = resolvePkgPath(folderName)
 const pkgDistPath = resolvePkgPath(folderName, true)
 
 export default [
-  // react-dom
   {
-    input: `${pkgPath}/${module || 'index.ts'}`,
+    input: `${pkgPath}/${module || 'src/index.ts'}`,
     output: [
       {
         file: `${pkgDistPath}/index.js`,
-        name: '@xuans-mini-react/react-dom',
-        format: 'umd',
-      },
-      {
-        file: `${pkgDistPath}/client.js`,
-        name: '@xuans-mini-react/react-dom',
+        name: '@xuans-mini-react/react-noop-renderer',
         format: 'umd',
       },
     ],
     external: [...Object.keys(peerDependencies || {}), 'scheduler'],
     plugins: [
-      ...getBaseRollupPlugins(),
+      ...getBaseRollupPlugins(undefined, {
+        typescript: {
+          tsconfigOverride: {
+            exclude: ['./packages/react-dom/**/*'],
+            compilerOptions: {
+              paths: {
+                hostConfig: [
+                  './packages/react-noop-renderer/src/hostConfig.ts',
+                ],
+              },
+            },
+          },
+        },
+      }),
       alias({
         entries: {
           hostConfig: `${pkgPath}/src/hostConfig.ts`,
@@ -45,18 +52,5 @@ export default [
         }),
       }),
     ],
-  },
-  // test-utils
-  {
-    input: `${pkgPath}/src/test-utils.ts`,
-    output: [
-      {
-        file: `${pkgDistPath}/test-utils.js`,
-        name: '@xuans-mini-react/test-utils',
-        format: 'umd',
-      },
-    ],
-    external: ['@xuans-mini-react/react-dom', '@xuans-mini-react/react'],
-    plugins: [...getBaseRollupPlugins()],
   },
 ]

@@ -5,6 +5,7 @@ import {
   commitTextUpdate,
   insertChildToContainer,
   removeChild,
+  commitPropsUpdate,
 } from 'hostConfig'
 import { FiberNode, FiberRootNode, PendingPassiveEffects } from './fiber'
 import {
@@ -272,6 +273,11 @@ function commitUpdate(finishedWork: FiberNode) {
     case HostText:
       const text = finishedWork.memoizedProps?.content
       return commitTextUpdate(finishedWork.stateNode, text)
+    case HostComponent:
+      return commitPropsUpdate(
+        finishedWork.stateNode,
+        finishedWork.memoizedProps,
+      )
     default:
       if (__DEV__) {
         console.warn('Unhandled Update')

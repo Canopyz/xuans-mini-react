@@ -16,10 +16,10 @@ interface Paths {
 }
 
 export interface DOMElement extends Element {
-  [elementPropsKey]: Props
+  [elementPropsKey]: Props | null
 }
 
-export function updateFiberProps(node: DOMElement, props: Props) {
+export function updateFiberProps(node: DOMElement, props: Props | null) {
   node[elementPropsKey] = props
 }
 
