@@ -1,5 +1,11 @@
 import { Props } from '@xuans-mini-react/shared'
 import { Container } from 'hostConfig'
+import {
+  unstable_ImmediatePriority as ImmediatePriority,
+  unstable_NormalPriority as NormalPriority,
+  unstable_UserBlockingPriority as UserBlockingPriority,
+  unstable_runWithPriority,
+} from 'scheduler'
 
 export const elementPropsKey = '__props'
 const validEventTypeList = ['click']
@@ -78,7 +84,10 @@ function dispatchEvent(container: Container, eventType: string, e: Event) {
 function triggerEventFlow(paths: EventCallback[], se: SyntheticEvent) {
   for (let i = 0; i < paths.length; i++) {
     const callback = paths[i]
-    callback.call(null, se)
+
+    unstable_runWithPriority(eventTypeToSchedulerPriority(se.type), () => {
+      callback.call(null, se)
+    })
 
     if (se.__stopPropagation) {
       break
@@ -125,4 +134,17 @@ function collectPaths(
   }
 
   return paths
+}
+
+function eventTypeToSchedulerPriority(eventType: string) {
+  switch (eventType) {
+    case 'click':
+    case 'keydown':
+    case 'keyup':
+      return ImmediatePriority
+    case 'scroll':
+      return UserBlockingPriority
+    default:
+      return NormalPriority
+  }
 }

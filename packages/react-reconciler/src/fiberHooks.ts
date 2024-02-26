@@ -3,6 +3,7 @@ import { internals } from '@xuans-mini-react/shared/src/internals'
 
 import { FiberNode } from './fiber'
 import {
+  Update,
   UpdateQueue,
   createUpdate,
   createUpdateQueue,
@@ -24,6 +25,8 @@ const { currentDispatcher } = internals
 
 interface Hook {
   memoizedState: any
+  baseState: any
+  baseQueue: Update<any> | null
   updateQueue: any
   next: Hook | null
 }
@@ -183,16 +186,35 @@ function updateState<State>(): [State, Dispatch<State>] {
   const hook = updateWorkInProgressHook()
 
   const queue = hook.updateQueue
+  const baseState = hook.baseState
+
   const pending = queue.shared.pending
-  queue.shared.pending = null
+  const current = currentHook!
+  let baseQueue = current.baseQueue
 
   if (pending !== null) {
-    const { memoizedState } = processUpdateQueue(
-      hook.memoizedState,
-      pending,
-      renderLane,
-    )
-    hook.memoizedState = memoizedState
+    // save update to current
+    if (baseQueue !== null) {
+      const baseFirst = baseQueue.next
+      const pendingFirst = pending.next
+
+      baseQueue.next = pendingFirst
+      pending.next = baseFirst
+    }
+    baseQueue = pending
+    current.baseQueue = pending
+    queue.shared.pending = null
+
+    if (baseQueue !== null) {
+      const {
+        memoizedState,
+        baseQueue: newBaseQueue,
+        baseState: newBaseState,
+      } = processUpdateQueue(baseState, baseQueue, renderLane)
+      hook.memoizedState = memoizedState
+      hook.baseState = newBaseState
+      hook.baseQueue = newBaseQueue
+    }
   }
 
   return [hook.memoizedState, queue.dispatch]
@@ -218,6 +240,8 @@ function updateWorkInProgressHook() {
     memoizedState: currentHook.memoizedState,
     updateQueue: currentHook.updateQueue,
     next: null,
+    baseQueue: currentHook.baseQueue,
+    baseState: currentHook.baseState,
   }
 
   if (workInProgressHook === null) {
@@ -276,6 +300,8 @@ function mountWorkInProgressHook(): Hook {
     memoizedState: null,
     updateQueue: null,
     next: null,
+    baseQueue: null,
+    baseState: null,
   }
 
   if (workInProgressHook === null) {

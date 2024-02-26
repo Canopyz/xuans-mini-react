@@ -11,6 +11,7 @@ import { Container } from 'hostConfig'
 import { UpdateQueue } from './updateQueue'
 import { Lane, Lanes, NoLane, NoLanes } from './fiberLanes'
 import { Effect } from './fiberHooks'
+import { CallbackNode } from 'scheduler'
 
 export class FiberNode {
   type: ElementType | null
@@ -70,7 +71,6 @@ export interface PendingPassiveEffects {
   unmount: Effect[]
   update: Effect[]
 }
-
 export class FiberRootNode {
   container: Container
   current: FiberNode
@@ -80,6 +80,9 @@ export class FiberRootNode {
   finishedLane: Lane
   pendingPassiveEffects: PendingPassiveEffects
 
+  callbackNode: CallbackNode | null
+  callbackPriority: Lane
+
   constructor(container: Container, hostRootFiber: FiberNode) {
     this.container = container
     this.current = hostRootFiber
@@ -88,6 +91,10 @@ export class FiberRootNode {
 
     this.pendingLanes = NoLanes
     this.finishedLane = NoLane
+
+    this.callbackNode = null
+    this.callbackPriority = NoLane
+
     this.pendingPassiveEffects = {
       unmount: [],
       update: [],

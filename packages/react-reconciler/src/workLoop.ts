@@ -19,6 +19,7 @@ import {
   NoLane,
   SyncLane,
   getHighestPriorityLane,
+  lanesToSchedulerPriority,
   markRootFinished,
   mergeLanes,
 } from './fiberLanes'
@@ -27,6 +28,8 @@ import { HostRoot } from './workTags'
 import {
   unstable_scheduleCallback as scheduleCallBack,
   unstable_NormalPriority as NormalPriority,
+  unstable_shouldYield,
+  unstable_cancelCallback,
 } from 'scheduler'
 import { HookHasEffect, Passive } from './hookEffectTags'
 
@@ -34,7 +37,12 @@ let workInProgress: FiberNode | null = null
 let wipRootRenderLane: Lane = NoLane
 let rootDoesHavePassiveEffects: boolean = false
 
+const RootIncomplete = 1
+const RootCompleted = 2
+
 function prepareFreshStack(root: FiberRootNode, lane: Lane) {
+  root.finishedLane = NoLane
+  root.finishedWork = null
   workInProgress = createWorkInProgress(root.current, {})
   wipRootRenderLane = lane
 }
@@ -47,20 +55,48 @@ export function scheduleUpdateOnFiber(fiber: FiberNode, lane: Lane) {
 
 function ensureRootIsScheduled(root: FiberRootNode) {
   const updateLane = getHighestPriorityLane(root.pendingLanes)
+  const existingCallback = root.callbackNode
+
   if (updateLane === NoLane) {
+    if (existingCallback !== null) {
+      unstable_cancelCallback(existingCallback)
+      root.callbackNode = null
+      root.callbackPriority = NoLane
+    }
     return
   }
+
+  const curPriority = updateLane
+  const prevPriority = root.callbackPriority
+
+  if (prevPriority === curPriority) {
+    return
+  }
+
+  if (existingCallback !== null) {
+    unstable_cancelCallback(existingCallback)
+  }
+
+  let newCallbackNode = null
 
   if (updateLane === SyncLane) {
     // use microtasks
     if (__DEV__) {
       console.log('schedule microtask, lane: ', updateLane)
     }
-    scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root, updateLane))
+    scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root))
     scheduleMicrotask(flushSyncCallbacks)
   } else {
     // use macrotasks
+    const schedulerPriority = lanesToSchedulerPriority(updateLane)
+    newCallbackNode = scheduleCallBack(
+      schedulerPriority,
+      performConcurrentWorkOnRoot.bind(null, root),
+    )
   }
+
+  root.callbackNode = newCallbackNode
+  root.callbackPriority = updateLane
 }
 
 function markRootUpdated(root: FiberRootNode, lane: Lane) {
@@ -82,18 +118,78 @@ function markUpdateFromFiberToRoot(fiber: FiberNode): FiberRootNode | null {
   return null
 }
 
-function performSyncWorkOnRoot(root: FiberRootNode, lane: Lane) {
+function performConcurrentWorkOnRoot(
+  root: FiberRootNode,
+  didTimeout?: boolean,
+): any {
+  const curCallback = root.callbackNode
+  const didFlushPassiveEffect = flushPassiveEffects(root.pendingPassiveEffects)
+  if (didFlushPassiveEffect) {
+    if (root.callbackNode !== curCallback) {
+      return null
+    }
+  }
+
+  const lane = getHighestPriorityLane(root.pendingLanes)
+  const curCallbackNode = root.callbackNode
+  if (lane === NoLane) {
+    return
+  }
+
+  const needSync = lane === SyncLane || didTimeout
+  const exitStatus = renderRoot(root, lane, !needSync)
+
+  ensureRootIsScheduled(root)
+
+  if (exitStatus === RootIncomplete) {
+    if (root.callbackNode !== curCallbackNode) {
+      return null
+    }
+    return performConcurrentWorkOnRoot.bind(null, root)
+  }
+
+  if (exitStatus === RootCompleted) {
+    const finishedWork = root.current.alternate
+    root.finishedWork = finishedWork
+    root.finishedLane = lane
+    wipRootRenderLane = NoLane
+    commitRoot(root)
+  }
+}
+
+function performSyncWorkOnRoot(root: FiberRootNode) {
   const nextLane = getHighestPriorityLane(root.pendingLanes)
   if (nextLane !== SyncLane) {
     ensureRootIsScheduled(root)
     return
   }
 
-  prepareFreshStack(root, lane)
+  const exitStatus = renderRoot(root, nextLane, false)
+
+  if (exitStatus === RootCompleted) {
+    const finishedWork = root.current.alternate
+    root.finishedWork = finishedWork
+    root.finishedLane = nextLane
+    wipRootRenderLane = NoLane
+
+    commitRoot(root)
+  }
+}
+
+function renderRoot(root: FiberRootNode, lane: Lane, shouldTimeSlice: boolean) {
+  if (__DEV__) {
+    console.log(
+      `render root in ${shouldTimeSlice ? 'concurrent mode' : 'sync mode'}`,
+    )
+  }
+
+  if (wipRootRenderLane !== lane) {
+    prepareFreshStack(root, lane)
+  }
 
   do {
     try {
-      workLoop()
+      shouldTimeSlice ? workLoopConcurrent() : workLoopSync()
       break
     } catch (err) {
       if (__DEV__) {
@@ -103,12 +199,17 @@ function performSyncWorkOnRoot(root: FiberRootNode, lane: Lane) {
     }
   } while (true)
 
-  const finishedWork = root.current.alternate
-  root.finishedWork = finishedWork
-  root.finishedLane = lane
-  wipRootRenderLane = NoLane
+  if (workInProgress !== null && shouldTimeSlice) {
+    return RootIncomplete
+  }
 
-  commitRoot(root)
+  if (!shouldTimeSlice && workInProgress !== null) {
+    if (__DEV__) {
+      console.error('wip should be null after sync render')
+    }
+  }
+
+  return RootCompleted
 }
 
 function commitRoot(root: FiberRootNode) {
@@ -165,24 +266,35 @@ function commitRoot(root: FiberRootNode) {
 }
 
 function flushPassiveEffects(pendingPassiveEffects: PendingPassiveEffects) {
+  let disdFlushPassiveEffect = false
   pendingPassiveEffects.unmount.forEach((effect) => {
+    disdFlushPassiveEffect = true
     commitHookEffectListUnmount(Passive, effect)
   })
   pendingPassiveEffects.unmount = []
 
   pendingPassiveEffects.update.forEach((effect) => {
+    disdFlushPassiveEffect = true
     commitHookEffectListDestroy(Passive | HookHasEffect, effect)
   })
   pendingPassiveEffects.update.forEach((effect) => {
+    disdFlushPassiveEffect = true
     commitHookEffectListCreate(Passive | HookHasEffect, effect)
   })
   pendingPassiveEffects.update = []
 
   flushSyncCallbacks()
+  return disdFlushPassiveEffect
 }
 
-function workLoop() {
+function workLoopSync() {
   while (workInProgress !== null) {
+    performUnitOfWork(workInProgress)
+  }
+}
+
+function workLoopConcurrent() {
+  while (workInProgress !== null && !unstable_shouldYield()) {
     performUnitOfWork(workInProgress)
   }
 }
