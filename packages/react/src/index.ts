@@ -4,6 +4,7 @@ import currentDispatcher, {
   resolveDispatcher,
 } from './currentDispatcher'
 import { jsx } from './jsx'
+import ReactCurrentBatchConfig from './currentBatchConfig'
 
 export const useState: Dispatcher['useState'] = (initialState) => {
   const dispatcher = resolveDispatcher()
@@ -15,8 +16,14 @@ export const useEffect: Dispatcher['useEffect'] = (create, deps) => {
   return dispatcher.useEffect(create, deps)
 }
 
+export const useTransition: Dispatcher['useTransition'] = () => {
+  const dispatcher = resolveDispatcher()
+  return dispatcher.useTransition()
+}
+
 export const __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = {
   currentDispatcher,
+  ReactCurrentBatchConfig,
 }
 
 export type { Dispatch, Dispatcher }

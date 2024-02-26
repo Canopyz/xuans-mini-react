@@ -60,9 +60,9 @@ function ensureRootIsScheduled(root: FiberRootNode) {
   if (updateLane === NoLane) {
     if (existingCallback !== null) {
       unstable_cancelCallback(existingCallback)
-      root.callbackNode = null
-      root.callbackPriority = NoLane
     }
+    root.callbackNode = null
+    root.callbackPriority = NoLane
     return
   }
 
@@ -174,6 +174,8 @@ function performSyncWorkOnRoot(root: FiberRootNode) {
 
     commitRoot(root)
   }
+
+  ensureRootIsScheduled(root)
 }
 
 function renderRoot(root: FiberRootNode, lane: Lane, shouldTimeSlice: boolean) {

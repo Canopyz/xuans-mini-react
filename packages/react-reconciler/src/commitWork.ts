@@ -320,7 +320,7 @@ function getHostSibling(fiber: FiberNode) {
     node = node.sibling
 
     while (node.tag !== HostComponent && node.tag !== HostText) {
-      if ((node.flags & MutationMask) !== NoFlags) {
+      if ((node.flags & (Placement | ChildDeletion)) !== NoFlags) {
         continue findSibling
       }
       if (node.child === null) {
@@ -330,7 +330,7 @@ function getHostSibling(fiber: FiberNode) {
       node = node.child
     }
 
-    if ((node.flags & MutationMask) === NoFlags) {
+    if ((node.flags & (Placement | ChildDeletion)) === NoFlags) {
       return node.stateNode
     }
   }
