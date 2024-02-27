@@ -13,7 +13,7 @@ import {
   HostRoot,
   HostText,
 } from './workTags'
-import { NoFlags, Update } from './fiberFlags'
+import { NoFlags, Ref, Update } from './fiberFlags'
 
 function markUpdate(fiber: FiberNode) {
   fiber.flags |= Update
@@ -29,11 +29,17 @@ export const completeWork = (wip: FiberNode) => {
         // update
         // temmporary solution, need to compare newProps and oldProps, mark update if different
         markUpdate(wip)
+        if (current.ref !== wip.ref) {
+          markRef(wip)
+        }
       } else {
         // create DOM and append to parent
         const instance = createInstance(wip.type as string, newProps)
         appendAllChildren(instance, wip)
         wip.stateNode = instance
+        if (wip.ref !== null) {
+          markRef(wip)
+        }
       }
       bubbleProperties(wip)
       return null
@@ -67,6 +73,10 @@ export const completeWork = (wip: FiberNode) => {
       }
       break
   }
+}
+
+function markRef(fiber: FiberNode) {
+  fiber.flags |= Ref
 }
 
 function appendAllChildren(parent: Container | Instance, wip: FiberNode) {

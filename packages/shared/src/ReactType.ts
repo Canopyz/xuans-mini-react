@@ -6,7 +6,7 @@ export type ElementType =
   | typeof REACT_FRAGMENT_TYPE
 export type Props = { [key: string]: any }
 export type Key = string | number | null
-export type Ref = any
+export type Ref = { current: any } | ((instance: any) => void)
 
 export interface ReactElementType {
   $$typeof: symbol | number

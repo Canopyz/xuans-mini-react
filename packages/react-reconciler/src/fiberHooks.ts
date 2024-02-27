@@ -76,12 +76,14 @@ const HooksDispatcherOnMount: Dispatcher = {
   useState: mountState,
   useEffect: mountEffect,
   useTransition: mountTransition,
+  useRef: mountRef,
 }
 
 const HooksDispatcherOnUpdate: Dispatcher = {
   useState: updateState,
   useEffect: updateEffect,
   useTransition: updateTransition,
+  useRef: updateRef,
 }
 
 function mountEffect(create: () => EffectCallback | void, deps?: EffectDeps) {
@@ -284,6 +286,18 @@ function mountState<State>(
   queue.dispatch = dispatch
 
   return [hook.memoizedState, dispatch]
+}
+
+function mountRef<T>(initialValue: T): { current: T } {
+  const hook = mountWorkInProgressHook()
+  const ref = { current: initialValue }
+  hook.memoizedState = ref
+  return ref
+}
+
+function updateRef<T>(): { current: T } {
+  const hook = updateWorkInProgressHook()
+  return hook.memoizedState
 }
 
 function mountTransition(): [boolean, (callback: () => void) => void] {

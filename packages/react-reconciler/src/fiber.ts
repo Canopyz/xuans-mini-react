@@ -19,7 +19,7 @@ export class FiberNode {
   pendingProps: Props
   key: Key
   stateNode: any
-  ref: Ref
+  ref: Ref | null
 
   return: FiberNode | null
   sibling: FiberNode | null
@@ -123,14 +123,16 @@ export function createWorkInProgress(
   workInProgress.type = current.type
   workInProgress.updateQueue = current.updateQueue
   workInProgress.child = current.child
+
   workInProgress.memoizedProps = current.memoizedProps
   workInProgress.memoizedState = current.memoizedState
+  workInProgress.ref = current.ref
 
   return workInProgress
 }
 
 export function createFiberFromElement(element: ReactElementType) {
-  const { type, key, props } = element
+  const { type, key, props, ref } = element
 
   let fiberTag: WorkTag = FunctionComponent
   if (typeof type === 'string') {
@@ -143,6 +145,8 @@ export function createFiberFromElement(element: ReactElementType) {
 
   const fiber = new FiberNode(fiberTag, props, key)
   fiber.type = type
+  fiber.ref = ref
+
   return fiber
 }
 
