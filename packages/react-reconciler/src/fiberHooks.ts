@@ -1,4 +1,11 @@
-import { Action, ReactElementType } from '@xuans-mini-react/shared'
+import {
+  Action,
+  REACT_CONTEXT_TYPE,
+  ReactContext,
+  ReactElementType,
+  Thenable,
+  Usable,
+} from '@xuans-mini-react/shared'
 import { internals } from '@xuans-mini-react/shared/src/internals'
 
 import { FiberNode } from './fiber'
@@ -15,6 +22,7 @@ import { Dispatch, Dispatcher } from '@xuans-mini-react/react'
 import { Lane, NoLane, requestUpdateLane } from './fiberLanes'
 import { HookEffectTag, HookHasEffect, Passive } from './hookEffectTags'
 import { PassiveEffect } from './fiberFlags'
+import { trackUsedThenable } from './thenable'
 
 let currentlyRenderingFiber: FiberNode | null = null
 let workInProgressHook: Hook | null = null
@@ -77,6 +85,8 @@ const HooksDispatcherOnMount: Dispatcher = {
   useEffect: mountEffect,
   useTransition: mountTransition,
   useRef: mountRef,
+  useContext: readContext,
+  use,
 }
 
 const HooksDispatcherOnUpdate: Dispatcher = {
@@ -84,6 +94,8 @@ const HooksDispatcherOnUpdate: Dispatcher = {
   useEffect: updateEffect,
   useTransition: updateTransition,
   useRef: updateRef,
+  useContext: readContext,
+  use,
 }
 
 function mountEffect(create: () => EffectCallback | void, deps?: EffectDeps) {
@@ -364,4 +376,35 @@ function mountWorkInProgressHook(): Hook {
   }
 
   return workInProgressHook
+}
+
+function readContext<T>(context: ReactContext<T>) {
+  const consumer = currentlyRenderingFiber
+  if (consumer === null) {
+    throw new Error(
+      'Context can only be called inside the body of a function component.',
+    )
+  }
+
+  return context._currentValue
+}
+
+function use<T>(usable: Usable<T>): T {
+  if (usable !== null && typeof usable === 'object') {
+    if (typeof (usable as Thenable<T>).then === 'function') {
+      const thenable = usable as Thenable<T>
+      return trackUsedThenable(thenable)
+    } else if ((usable as ReactContext<T>).$$typeof === REACT_CONTEXT_TYPE) {
+      const context = usable as ReactContext<T>
+      return readContext(context)
+    }
+  }
+
+  throw new Error('Not implemented argument for use: ' + usable)
+}
+
+export function resetHooksOnUnwind() {
+  currentlyRenderingFiber = null
+  currentHook = null
+  workInProgressHook = null
 }

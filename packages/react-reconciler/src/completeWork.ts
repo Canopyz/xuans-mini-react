@@ -7,13 +7,19 @@ import {
 } from 'hostConfig'
 import { FiberNode } from './fiber'
 import {
+  ContextProvider,
   Fragment,
   FunctionComponent,
   HostComponent,
   HostRoot,
   HostText,
+  OffscreenComponent,
+  SuspenseComponent,
 } from './workTags'
-import { NoFlags, Ref, Update } from './fiberFlags'
+import { NoFlags, Ref, Update, Visibility } from './fiberFlags'
+import { popProvider } from './fiberContext'
+import { ReactProviderType } from '@xuans-mini-react/shared'
+import { popSuspenseHandler } from './suspenseContext'
 
 function markUpdate(fiber: FiberNode) {
   fiber.flags |= Update
@@ -65,6 +71,31 @@ export const completeWork = (wip: FiberNode) => {
       bubbleProperties(wip)
       break
     case Fragment:
+      bubbleProperties(wip)
+      break
+    case OffscreenComponent:
+      bubbleProperties(wip)
+      break
+    case ContextProvider:
+      popProvider((wip.type as any as ReactProviderType<any>)._context)
+      bubbleProperties(wip)
+      break
+    case SuspenseComponent:
+      popSuspenseHandler()
+      const offscreenFiber = wip.child as FiberNode
+      const isHidden = offscreenFiber.pendingProps.mode === 'hidden'
+      const currentOffscreenFiber = offscreenFiber.alternate
+
+      if (currentOffscreenFiber !== null) {
+        const wasHidden = currentOffscreenFiber.pendingProps.mode === 'hidden'
+        if (isHidden !== wasHidden) {
+          offscreenFiber.flags |= Visibility
+          bubbleProperties(offscreenFiber)
+        }
+      } else if (isHidden) {
+        offscreenFiber.flags |= Visibility
+        bubbleProperties(offscreenFiber)
+      }
       bubbleProperties(wip)
       break
     default:

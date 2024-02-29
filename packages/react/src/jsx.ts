@@ -6,6 +6,7 @@ import {
   Ref,
   ElementType,
   REACT_FRAGMENT_TYPE,
+  REACT_SUSPENSE_TYPE,
 } from '@xuans-mini-react/shared'
 
 const ReactElement = function (
@@ -71,11 +72,12 @@ export const jsx = function (
 }
 
 export const Fragment = REACT_FRAGMENT_TYPE
+export const Suspense = REACT_SUSPENSE_TYPE
 
 export const jsxDEV = (type: ElementType, config: any) => {
   let key: Key = null
   const props: Props = {}
-  let ref: Ref = null
+  let ref: Ref | null = null
 
   for (const prop in config) {
     const val = config[prop]

@@ -48,6 +48,9 @@ export function isSubsetOfLanes(set: Lanes, subset: Lane) {
 
 export function markRootFinished(root: FiberRootNode, lane: Lane) {
   root.pendingLanes &= ~lane
+
+  root.suspendedLanes = NoLanes
+  root.pingedLanes = NoLanes
 }
 
 export function lanesToSchedulerPriority(lanes: Lanes) {
@@ -79,4 +82,34 @@ export function schedulerPriorityToLane(priority: number) {
     return DefaultLane
   }
   return IdleLane
+}
+
+export function markRootSuspended(root: FiberRootNode, suspendedLane: Lane) {
+  root.suspendedLanes |= suspendedLane
+  root.pingedLanes &= ~suspendedLane
+}
+
+export function markRootPinged(root: FiberRootNode, pingedLane: Lane) {
+  root.pingedLanes |= root.pendingLanes & pingedLane
+}
+
+export function getNextLane(root: FiberRootNode): Lane {
+  const pendingLanes = root.pendingLanes
+
+  if (pendingLanes === NoLanes) {
+    return NoLane
+  }
+
+  let nextLane = NoLane
+  const notSuspendedLanes = pendingLanes & ~root.suspendedLanes
+  if (notSuspendedLanes !== NoLanes) {
+    nextLane = getHighestPriorityLane(notSuspendedLanes)
+  } else {
+    const pingedLanes = pendingLanes & root.pingedLanes
+    if (pingedLanes !== NoLanes) {
+      nextLane = getHighestPriorityLane(pingedLanes)
+    }
+  }
+
+  return nextLane
 }

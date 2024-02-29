@@ -4,14 +4,31 @@ import {
   ReactElementType,
   Ref,
   ElementType,
+  REACT_PROVIDER_TYPE,
+  ReactProviderType,
+  REACT_SUSPENSE_TYPE,
+  Wakeable,
 } from '@xuans-mini-react/shared'
-import { Fragment, FunctionComponent, HostComponent, WorkTag } from './workTags'
+import {
+  ContextProvider,
+  Fragment,
+  FunctionComponent,
+  HostComponent,
+  OffscreenComponent,
+  SuspenseComponent,
+  WorkTag,
+} from './workTags'
 import { Flags, NoFlags } from './fiberFlags'
 import { Container } from 'hostConfig'
 import { UpdateQueue } from './updateQueue'
 import { Lane, Lanes, NoLane, NoLanes } from './fiberLanes'
 import { Effect } from './fiberHooks'
 import { CallbackNode } from 'scheduler'
+
+export interface OffscreenProps {
+  mode: 'visible' | 'hidden'
+  children: any
+}
 
 export class FiberNode {
   type: ElementType | null
@@ -71,6 +88,7 @@ export interface PendingPassiveEffects {
   unmount: Effect[]
   update: Effect[]
 }
+
 export class FiberRootNode {
   container: Container
   current: FiberNode
@@ -83,6 +101,10 @@ export class FiberRootNode {
   callbackNode: CallbackNode | null
   callbackPriority: Lane
 
+  pingCache: WeakMap<Wakeable<any>, Set<Lane>> | null
+  suspendedLanes: Lanes
+  pingedLanes: Lanes
+
   constructor(container: Container, hostRootFiber: FiberNode) {
     this.container = container
     this.current = hostRootFiber
@@ -91,6 +113,8 @@ export class FiberRootNode {
 
     this.pendingLanes = NoLanes
     this.finishedLane = NoLane
+    this.suspendedLanes = NoLanes
+    this.pingedLanes = NoLanes
 
     this.callbackNode = null
     this.callbackPriority = NoLane
@@ -99,6 +123,8 @@ export class FiberRootNode {
       unmount: [],
       update: [],
     }
+
+    this.pingCache = null
   }
 }
 
@@ -137,6 +163,13 @@ export function createFiberFromElement(element: ReactElementType) {
   let fiberTag: WorkTag = FunctionComponent
   if (typeof type === 'string') {
     fiberTag = HostComponent
+  } else if (
+    typeof type === 'object' &&
+    (type as ReactProviderType<any>).$$typeof === REACT_PROVIDER_TYPE
+  ) {
+    fiberTag = ContextProvider
+  } else if (type === REACT_SUSPENSE_TYPE) {
+    fiberTag = SuspenseComponent
   } else if (typeof type !== 'function') {
     if (__DEV__) {
       console.warn('Unknown fiber tag', type)
@@ -152,5 +185,10 @@ export function createFiberFromElement(element: ReactElementType) {
 
 export function createFiberFromFragment(element: ReactElementType, key: Key) {
   const fiber = new FiberNode(Fragment, element, key)
+  return fiber
+}
+
+export function createFiberFromOffscreen(pendingProps: OffscreenProps) {
+  const fiber = new FiberNode(OffscreenComponent, pendingProps, null)
   return fiber
 }

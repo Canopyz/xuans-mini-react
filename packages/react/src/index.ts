@@ -26,6 +26,16 @@ export const useTransition: Dispatcher['useTransition'] = () => {
   return dispatcher.useTransition()
 }
 
+export const useContext: Dispatcher['useContext'] = (context) => {
+  const dispatcher = resolveDispatcher()
+  return dispatcher.useContext(context)
+}
+
+export const use: Dispatcher['use'] = (usable) => {
+  const dispatcher = resolveDispatcher()
+  return dispatcher.use(usable)
+}
+
 export const __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = {
   currentDispatcher,
   ReactCurrentBatchConfig,
@@ -33,7 +43,8 @@ export const __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = {
 
 export type { Dispatch, Dispatcher }
 
-export { isValidElement, Fragment } from './jsx'
+export { isValidElement, Fragment, Suspense } from './jsx'
+export * from './context'
 
 export const version = '0.0.0'
 export const createElement = jsx
